@@ -1,0 +1,16 @@
+$params = @{
+  Name = "TestService"
+  BinaryPathName = "[binPath]\TestWindowsService.exe"
+  DisplayName = "Test Service"
+  StartupType = "Automatic"
+  Description = "This is a test service."
+}
+New-Service @params
+
+Start-Service -Name "TestService"
+
+Stop-Service -Name "TestService"
+
+Remove-Service -Name "TestService"
+OR
+Get-Service -DisplayName "Test Service" | Remove-Service
