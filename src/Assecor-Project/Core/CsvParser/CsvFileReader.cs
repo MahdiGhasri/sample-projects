@@ -1,6 +1,5 @@
 ﻿using Microsoft.VisualBasic.FileIO;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -16,12 +15,13 @@ namespace CsvParser
     {
         private readonly DataTable _CsvData;
         private readonly Dictionary<string, string[]> _CsvFileErrors;
+        private readonly string[] _Delimiters = new string[] { "," };
 
         private const string COLUMN_ID_NAME = "Id";
         
-        public CsvFileReader(string path, string[] delimiter) : base(path)
+        public CsvFileReader(string path) : base(path)
         {
-            SetDelimiters(delimiter);
+            SetDelimiters(_Delimiters);
             TrimWhiteSpace = true;
 
             _CsvData = new DataTable();
@@ -52,13 +52,6 @@ namespace CsvParser
 
         private void MakeDataTableColumn(string[] columnNames)
         {
-
-            _CsvData.Columns.Add(new DataColumn()
-            {
-                AllowDBNull = false,
-                ColumnName = COLUMN_ID_NAME
-            });
-            
             foreach (string columnName in columnNames)
             {
                 _CsvData.Columns.Add(new DataColumn()
@@ -72,24 +65,19 @@ namespace CsvParser
         private void ReadCsvFile()
         {
             int dataTableColumnCount = _CsvData.Columns.Count;
-            int csvFileColumnCount = dataTableColumnCount - 1;
-            int Id = 0;
 
             while (!EndOfData)
             {
-                string[] dataTableRowValues = new string[dataTableColumnCount];
-                string[] csvFileValues = RemoveNullFields(ReadFields());
+                string[] csvFileValues = ReadFields();
 
-                csvFileValues.CopyTo(dataTableRowValues, 1);
-
-                if (csvFileValues.Length == csvFileColumnCount)
+                if (csvFileValues.Length == dataTableColumnCount)
                 {
-                    dataTableRowValues[0] = (++Id).ToString();
-                    _CsvData.Rows.Add(dataTableRowValues);
+                    _CsvData.Rows.Add(csvFileValues);
                 }
                 else
                 {
-                    _CsvFileErrors.Add(LineNumber.ToString(), csvFileValues);
+                    string key = LineNumber.ToString();
+                    _CsvFileErrors.Add(key, RemoveNullFields(csvFileValues));
                 }
             }
         }
@@ -101,23 +89,27 @@ namespace CsvParser
             if (_CsvFileErrors.Count == 0)
                 return;
 
+            const int copyArrayStartIndex = 0;
             int dataTableColumnCount = _CsvData.Columns.Count;
 
             string[] rowValues = new string[dataTableColumnCount];
-            int index = 1;
+            int index = copyArrayStartIndex;
+            int insertPosition = int.Parse(_CsvFileErrors.Keys.FirstOrDefault()) - 2;
 
             foreach (string[] lineValues in _CsvFileErrors.Values)
             {
                 lineValues.CopyTo(rowValues, index);
                 index += lineValues.Length;
 
-                if(index >= dataTableColumnCount)
+                if (index >= dataTableColumnCount)
                 {
-                    long Id = _CsvData.Rows.Count + 1;
-                    rowValues[0] = Id.ToString();
-                    _CsvData.Rows.Add(rowValues);
+                    DataRow dataRow = _CsvData.NewRow();
+                    dataRow.ItemArray = rowValues;
 
-                    index = 0;
+                    _CsvData.Rows.InsertAt(dataRow, insertPosition);
+
+                    index = copyArrayStartIndex;
+                    insertPosition++;
                 }
             }
         }
@@ -128,7 +120,15 @@ namespace CsvParser
         private void VerifyExistanceOfColumnId()
         {
             if (!ShowRowNumberAsId)
-                _CsvData.Columns.Remove(COLUMN_ID_NAME);
+                return;
+
+            _CsvData.Columns.Add(new DataColumn(COLUMN_ID_NAME));
+
+            for (int i = 0; i < _CsvData.Rows.Count; i++)
+            {
+                var row = _CsvData.Rows[i];
+                row.SetField(COLUMN_ID_NAME, i + 1);
+            }
         }
 
         private List<T> MapToObject<T>() where T : class
