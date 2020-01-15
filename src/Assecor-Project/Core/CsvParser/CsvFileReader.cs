@@ -27,9 +27,8 @@ namespace CsvParser
             _CsvData = new DataTable();
             _CsvFileErrors = new Dictionary<string, string[]>();
         }
-
         public bool ShowRowNumberAsId { private get; set; } = true;
-        public bool IsCorrectBrokenLines { private get; set; } = true;
+        public bool ShouldCorrectBrokenLines { private get; set; } = true;
 
         /// <summary>
         /// Reading a delimited-format file and map its data to an object.
@@ -45,7 +44,7 @@ namespace CsvParser
 
             CorrectBrokenLines();
 
-            VerifyExistanceOfColumnId();
+            AddColumnId();
 
             return MapToObject<T>();
         }
@@ -83,7 +82,7 @@ namespace CsvParser
         }
         private void CorrectBrokenLines()
         {
-            if (!IsCorrectBrokenLines)
+            if (!ShouldCorrectBrokenLines)
                 return;
 
             if (_CsvFileErrors.Count == 0)
@@ -117,7 +116,7 @@ namespace CsvParser
         {
             return values.Where(w => !string.IsNullOrWhiteSpace(w)).ToArray();
         }
-        private void VerifyExistanceOfColumnId()
+        private void AddColumnId()
         {
             if (!ShowRowNumberAsId)
                 return;
