@@ -1,6 +1,6 @@
 ﻿using CsvParser.Tests.Models;
-using Newtonsoft.Json;
 using System.Collections.Generic;
+using Utility.Extensions;
 using Xunit;
 
 namespace CsvParser.Tests
@@ -17,16 +17,23 @@ namespace CsvParser.Tests
 
         [Theory]
         [MemberData(nameof(TestDataGenerator.GetCsvFileReaderTestData), MemberType = typeof(TestDataGenerator))]
-        public void When_ExistCsvFiles_Expect_PersonList(string filePath, List<Person> expectResult)
+        public void When_ExistCsvFiles_Expect_PersonList(string filePath, 
+                                                         bool showRowNumberAsId,
+                                                         bool shouldCorrectBrokenLines,
+                                                         List<Person> expectResult)
         {
-            CsvFileReader csvFileReader = new CsvFileReader(filePath);
+            CsvFileReader csvFileReader = new CsvFileReader(filePath)
+            {
+                ShowRowNumberAsId = showRowNumberAsId,
+                ShouldCorrectBrokenLines = shouldCorrectBrokenLines
+            };
 
-            List<Person> result = csvFileReader.MapFileToObject<Person>(_csvColumns);
+            List<Person> actualResult = csvFileReader.MapFileToObject<Person>(_csvColumns);
          
-            string jsonStringResult = JsonConvert.SerializeObject(result);
-            string jsonStringExpect = JsonConvert.SerializeObject(expectResult);
+            string jsonStringActualResult = actualResult.ToJson();
+            string jsonStringExpectResult = expectResult.ToJson();
        
-            Assert.Equal(jsonStringExpect, jsonStringResult);
+            Assert.Equal(jsonStringExpectResult, jsonStringActualResult);
         }
     }
 }

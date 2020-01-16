@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\src\Assecor-Project\Core\CsvParser\CsvParser.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Shared\Utility\Utility.csproj" />
   </ItemGroup>
 
   <ItemGroup>
