@@ -1,8 +1,9 @@
-﻿using Microsoft.VisualBasic.FileIO;
-using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
+using System.Text;
+using Utility.Extensions;
 
 namespace CsvParser
 {
@@ -11,19 +12,18 @@ namespace CsvParser
     /// Passing file path and delimiters in constructor.
     /// Using TextFieldParser class to parse csv files.
     /// </summary>
-    public class CsvFileReader : TextFieldParser, ICsvFileReader
+    public class CsvFileReader : ICsvFileReader
     {
         private readonly DataTable _CsvData;
         private readonly Dictionary<string, string[]> _CsvFileErrors;
-        private readonly string[] _Delimiters = new string[] { "," };
+        private readonly string _FilePath;
+        private readonly string _Delimiter =  ",";
 
         private const string COLUMN_ID_NAME = "Id";
         
-        public CsvFileReader(string path) : base(path)
+        public CsvFileReader(string filePath)
         {
-            SetDelimiters(_Delimiters);
-            TrimWhiteSpace = true;
-
+            _FilePath = filePath;
             _CsvData = new DataTable();
             _CsvFileErrors = new Dictionary<string, string[]>();
         }
@@ -63,11 +63,16 @@ namespace CsvParser
 
         private void ReadCsvFile()
         {
+            int lineNumber = 0;
             int dataTableColumnCount = _CsvData.Columns.Count;
 
-            while (!EndOfData)
+            using var fileStream = File.OpenRead(_FilePath);
+            using var streamReader = new StreamReader(fileStream, Encoding.UTF8);
+            string line;
+            while ((line = streamReader.ReadLine()) != null)
             {
-                string[] csvFileValues = ReadFields();
+                lineNumber++;
+                string[] csvFileValues = TrimFields(line.Split(_Delimiter));
 
                 if (csvFileValues.Length == dataTableColumnCount)
                 {
@@ -75,8 +80,7 @@ namespace CsvParser
                 }
                 else
                 {
-                    string key = LineNumber.ToString();
-                    _CsvFileErrors.Add(key, RemoveNullFields(csvFileValues));
+                    _CsvFileErrors.Add(lineNumber.ToString(), RemoveNullFields(csvFileValues));
                 }
             }
         }
@@ -93,7 +97,7 @@ namespace CsvParser
 
             string[] rowValues = new string[dataTableColumnCount];
             int index = copyArrayStartIndex;
-            int insertPosition = int.Parse(_CsvFileErrors.Keys.FirstOrDefault()) - 2;
+            int insertPosition = int.Parse(_CsvFileErrors.Keys.FirstOrDefault()) - 1;
 
             foreach (string[] lineValues in _CsvFileErrors.Values)
             {
@@ -116,6 +120,10 @@ namespace CsvParser
         {
             return values.Where(w => !string.IsNullOrWhiteSpace(w)).ToArray();
         }
+        private string[] TrimFields(string[] values)
+        {
+            return values.Select(w => w.Trim()).ToArray();
+        }
         private void AddColumnId()
         {
             if (!ShowRowNumberAsId)
@@ -132,9 +140,7 @@ namespace CsvParser
 
         private List<T> MapToObject<T>() where T : class
         {
-            string jsonString = JsonConvert.SerializeObject(_CsvData);
-
-            return JsonConvert.DeserializeObject<List<T>>(jsonString);
+            return _CsvData.ToJson().MapToObject<List<T>>();
         }
     }
 }
