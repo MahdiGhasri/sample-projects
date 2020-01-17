@@ -99,6 +99,17 @@ namespace CsvParser.Tests
             yield return new object[] { csvfile2, false, false, resultExpected5 };
         }
 
+        public static IEnumerable<object[]> GetTestDataForCsvColumns()
+        {
+            string directory = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
+            string csvfile1 = Path.Combine(directory, "TestFiles", "sample-input.csv");
+
+            string[] csvColumns = new string[0];
+
+            yield return new object[] { csvfile1, csvColumns };
+            yield return new object[] { csvfile1, null };
+        }
+
         public IEnumerator<object[]> GetEnumerator()
         {
             return GetCsvFileReaderTestData().GetEnumerator();

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -23,6 +24,9 @@ namespace CsvParser
         
         public CsvFileReader(string filePath)
         {
+            if (string.IsNullOrEmpty(filePath))
+                throw new ArgumentException("file path cannot be null.");
+
             _FilePath = filePath;
             _CsvData = new DataTable();
             _CsvFileErrors = new Dictionary<string, string[]>();
@@ -38,6 +42,9 @@ namespace CsvParser
         /// <returns>List of object wich made from csv file</returns>
         public List<T> MapFileToObject<T>(string[] columnNames) where T : class
         {
+            if (columnNames == null || columnNames.Length == 0)
+                throw new ArgumentException("Columns cannot be null.");
+            
             MakeDataTableColumn(columnNames);
 
             ReadCsvFile();
@@ -63,6 +70,9 @@ namespace CsvParser
 
         private void ReadCsvFile()
         {
+            if (!File.Exists(_FilePath))
+                throw new FileNotFoundException($"file not found: {_FilePath}");
+
             int lineNumber = 0;
             int dataTableColumnCount = _CsvData.Columns.Count;
 
